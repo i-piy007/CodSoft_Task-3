@@ -137,8 +137,13 @@ body{
 }
 .main-grid{
     display: grid;
-    grid-template-columns: 1fr 340px;
+    grid-template-columns: minmax(0, 1fr) 340px;
     gap: 28px;
+    align-items: start;
+}
+.left-col,
+.right-col{
+    min-width: 0;
 }
 .left-col{
     display: flex;
@@ -277,7 +282,10 @@ body{
     gap: 10px;
     max-height: 440px;
     overflow-y: auto;
+    overflow-x: hidden;
     padding-right: 4px;
+    width: 100%;
+    min-width: 0;
 }
 .expenses-list::-webkit-scrollbar{
     width: 5px;
@@ -295,7 +303,10 @@ body{
     align-items: center;
     gap: 12px;
     transition: 0.15s;
-     cursor: default;
+    cursor: default;
+    width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
 }
 .expense-item:hover{
     border-color: var(--accent);
@@ -364,20 +375,53 @@ body{
 
 
 
-@media (max-width: 900px){
+@media (max-width: 1024px){
+    body{
+        padding: 18px;
+    }
+    .app-container{
+        padding: 22px;
+    }
     .main-grid{
         grid-template-columns: 1fr;
+    }
+    .right-col{
+        width: 100%;
+    }
+}
+@media (max-width: 768px){
+    body{
+        padding: 14px;
+    }
+    .app-container{
+        padding: 18px;
+    }
+    .app-header{
+        align-items: flex-start;
+    }
+    .stats-grid{
+        grid-template-columns: repeat(2, minmax(0, 1fr));
     }
     .form-row{
         grid-template-columns: 1fr 1fr;
     }
     .form-row .btn-add{
-        grid-column: span 2;
+        grid-column: 1 / -1;
+    }
+    .expenses-header{
+        align-items: flex-start;
+    }
+    .filter-group{
+        width: 100%;
+        flex-wrap: wrap;
     }
 }
 @media (max-width: 500px){
+    body{
+        padding: 10px;
+    }
     .app-container{
-        padding: 16px;
+        padding: 14px;
     }
     .form-row{
         grid-template-columns: 1fr;
@@ -390,6 +434,11 @@ body{
     }
     .expense-item{
         flex-wrap: wrap;
+        align-items: flex-start;
+    }
+    .expense-item .expense-amount{
+        width: 100%;
+        margin-top: 4px;
     }
     .header-actions button span{
         display: none;
