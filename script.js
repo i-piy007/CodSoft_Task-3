@@ -118,4 +118,121 @@ function renderList(){
         });
     });
 }
-function
+function formatDate(dateStr){
+    const d = new Date(dateStr);
+    return d.toLocaleDateString('en-US',{month: 'short', day: 'numeric', year: 'numeric'});
+}
+function renderChart(){
+    const ctx = document.getElementById('categoryChart').getContext('2d');
+    const expenses = transactions.filter(t => t.type === 'expense');
+    const categoryMap = {};
+    expenses.forEach(t => {
+        categoryMap[t.category] = (categoryMap[t.category] || 0) + t.amount;
+    });
+    const labels = Object.keys(categoryMap);
+    const amounts = Object.values(categoryMap);
+    const color = [
+        '#6366f1', '#10b981', '#ef4444', '#8b5cf6', '#f59e0b', '#ec4899', '#14b8a6', '#f97316', '#6b7280'
+    ];
+    if(chartInstance) chartInstance.destroy();
+    if(labels.length === 0){
+        chartInstance = new Chart(ctx, {
+            type: 'doughnut',
+            data: {
+                labels: ['No Data'],
+                datasets: [{data: [1], backgroundColor: ['#e5e7eb']}]
+            },
+            options: {
+                Responsive: true,
+                maintainAspectRatio: false,
+                plugins: {legend: {display: false}},
+                cutout: '70%',
+            }
+        });
+        return;
+    }
+    chartInstance = new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+            labels: labels,
+            datasets : [{
+                data: data,
+                backgroundColor: color.slice(0, labels.length),
+                borderWidth: 0,
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'bottom',
+                    labels:{
+                        boxWidth: 12,
+                        font: {size: 11},
+                        padding: 12,
+                        color: getComputedStyle(document.documentElement).getPropertyValue('--text').trim() || '#1a1a2e'
+                    }
+                }
+            },
+            cutout: '65%', 
+        }
+    });
+}
+function handleAdd(){
+    const desc = descInput.value.trim();
+    const amount = parseFloat(amountInput.value);
+    const category = categorySelect.value;
+    const type = document.querySelector('input[name="type"]:checked').value;
+    if(!desc){
+        alert('Please enter a description');
+
+    }
+    if(!isNaN(amount) || amount <= 0){
+        alert('Please enter a valid amount');
+        return;
+    }
+    if(editingId){
+        const idx = transactions.findIndex(t => t.id === editingId);
+        if(idx !== -1){
+            transactions[idx].description = desc;
+            transactions[idx].amount = amount;
+            transactions[idx].category = category;
+            transactions[idx].type = type;
+            transactions[idx].updated = new Date().toISOString();
+        }
+        editingId = null;
+        addBtn.innerHTML = '<i class="fas fa-plus"></i> Add';
+        addBtn.style.background = '';
+    } else{
+        const newT= {
+            id: generateId(),
+            description: desc,
+            amount: amount,
+            category: category,
+            type: type,
+            date: new Date().toISOString(),
+            created: new Date().toISOString()
+        };
+        transactions.push(newT);
+    }
+    saveData();
+    clearForm();
+}
+function clearForm(){
+    descInput.value = '';
+    amountInput.value = '';
+    categorySelect.value = 'Food';
+    document.querySelector('input[name="type"][value="expense"]').checked = true;
+    editingId = null;
+    addBtn.innerHTML = '<i class="fas fa-plus"></i> Add';
+    addBtn.style.background = '';
+}
+function clearAll(){
+    if(transactions.length === 0) return;
+    if(confirm('Delete all transactions? This cannot be undone.')){
+        transactions = [];
+        saveData();
+        renderAll();
+    }
+}
