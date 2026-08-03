@@ -1,7 +1,7 @@
 let transactions = [];
 let editingId = null;
 let chartInstance = null;
-const STORAGE_KEY = 'expense_tracker-data';
+const STORAGE_KEY = 'expense_tracker_data';
 function loadData(){
     try{
         const data = localStorage.getItem(STORAGE_KEY);
@@ -21,12 +21,12 @@ const descInput = document.getElementById('descInput');
 const amountInput = document.getElementById('amountInput');
 const categorySelect = document.getElementById('categorySelect');
 const addBtn = document.getElementById('addBtn');
-const expenseList = document.getElementById('expenseList');
+const expensesList = document.getElementById('expensesList');
 const filterCategory = document.getElementById('filterCategory');
 const filterType = document.getElementById('filterType');
 const totalBalance = document.getElementById('totalBalance');
 const totalIncome = document.getElementById('totalIncome');
-const totalExpenese = document.getElementById('totalExpense');
+const totalExpense = document.getElementById('totalExpense');
 const transactionCount = document.getElementById('transactionCount');
 const clearAllBtn = document.getElementById('clearAllBtn');
 const themeToggle = document.getElementById('themeToggle');
@@ -41,14 +41,15 @@ function renderStats(){
     const total = transactions.reduce((sum, t) => {
         return t.type === 'income' ? sum + t.amount : sum - t.amount;
     }, 0);
-    const income = transactions.filter(t => t.type === 'income').reduce((sum,t) => t.amount,0);
-    const expense = transactions.filter(t => t.type === 'expense').reduce((sum,t) => sum + t.amount,0);
+    const income = transactions.filter(t => t.type === 'income').reduce((sum,t) => t.amount, 0);
+    const expense = transactions.filter(t => t.type === 'expense').reduce((sum,t) => sum + t.amount, 0);
+    
     totalBalance.textContent = `$${total.toFixed(2)}`;
     totalIncome.textContent = `$${income.toFixed(2)}`;
-    totalExpenese.textContent = `$${expense.toFixed(2)}`;
+    totalExpense.textContent = `$${expense.toFixed(2)}`;
     transactionCount.textContent = transactions.length;
 }
-function getFilterTransactions(){
+function getFilteredTransactions(){
     const cat = filterCategory.value;
     const type = filterType.value;
     return transactions.filter(t => {
@@ -60,10 +61,10 @@ function getFilterTransactions(){
 function renderList(){
     const filtered = getFilteredTransactions();
     if(filtered.length === 0){
-        expenseList.innerHTML = `<div class="no-expenses"> No Tranactions Match your filters.</div>`;
+        expensesList.innerHTML = `<div class="no-expenses"> No Tranactions Match your filters.</div>`;
         return; 
     }
-    const sorted = [...filtered].sort((a,b) => new Date(b.date) - new Date(a.date));
+    const sorted = [...filtered].sort((a, b) => new Date(b.date) - new Date(a.date));
     let html= '';
     sorted.forEach(t => {
         const isIncome = t.type === 'income';
@@ -71,7 +72,7 @@ function renderList(){
         const sign = isIncome ? '+' : '-';
         html += `
         <div class="expense-item" data-id = "${t.id}">
-            <div class=expense-info">
+            <div class="expense-info">
                 <div class="expense-meta">
                     <span class="category-badge">${t.category} </span>
                     <span>${formatDate(t.date)}</span>
@@ -80,14 +81,14 @@ function renderList(){
             </div>
             <div class="expense-amount ${amountClass}">${sign}$${t.amount.toFixed(2)}</div>
             <div class="expense-actions">
-                <button class="edit-btn" data-id="${t.id}"><i class= "fas fa-pen></i></button>
+                <button class="edit-btn" data-id="${t.id}"><i class="fas fa-pen"></i></button>
                 <button class="delete-btn" data-id="${t.id}"><i class="fas fa-times"></i></button>
             </div>
         </div>
         `;
     });
-    expenseList.innerHTML = html;
-    expenseList.querySelectorAll('.delete-btn').forEach(btn => {
+    expensesList.innerHTML = html;
+    expensesList.querySelectorAll('.delete-btn').forEach(btn => {
         btn.addEventListener('click', (e) => {
             e.stopPropagation();
             if(confirm('Delete this transactions ?')){
@@ -98,22 +99,22 @@ function renderList(){
             }
         }); 
     });
-    expenseList.querySelectorAll('.edit-btn').forEach(btn => {
+    expensesList.querySelectorAll('.edit-btn').forEach(btn => {
         btn.addEventListener('click', (e) => {
             e.stopPropagation();
             const id = btn.dataset.id;
-            const transaction = transactions.find(tr => tr.id === id);
+            const t = transactions.find(tr => tr.id === id);
             if(t){
                 editingId = id;
                 descInput.value = t.description;
                 amountInput.value = t.amount;
                 categorySelect.value = t.category;
-                document.querSelectorAll('input[name="type"]').forEach(r => {
+                document.querySelectorAll('input[name="type"]').forEach(r => {
                     r.checked = r.value === t.type;
                 });
                 addBtn.innerHTML = '<i class="fas fa-save"></i> Update';
                 addBtn.style.background = `var(--warning)`;
-                document.queySelectory('.add-form').scrollIntoView({behavior: 'smooth'});
+                document.querySelector('.add-form').scrollIntoView({behavior: 'smooth'});
             }
         });
     });
@@ -130,8 +131,8 @@ function renderChart(){
         categoryMap[t.category] = (categoryMap[t.category] || 0) + t.amount;
     });
     const labels = Object.keys(categoryMap);
-    const amounts = Object.values(categoryMap);
-    const color = [
+    const data = Object.values(categoryMap);
+    const colors = [
         '#6366f1', '#10b981', '#ef4444', '#8b5cf6', '#f59e0b', '#ec4899', '#14b8a6', '#f97316', '#6b7280'
     ];
     if(chartInstance) chartInstance.destroy();
@@ -157,7 +158,7 @@ function renderChart(){
             labels: labels,
             datasets : [{
                 data: data,
-                backgroundColor: color.slice(0, labels.length),
+                backgroundColor: colors.slice(0, labels.length),
                 borderWidth: 0,
             }]
         },
@@ -165,7 +166,7 @@ function renderChart(){
             responsive: true,
             maintainAspectRatio: false,
             plugins: {
-                legend: {
+                lagend: {
                     position: 'bottom',
                     labels:{
                         boxWidth: 12,
@@ -186,7 +187,7 @@ function handleAdd(){
     const type = document.querySelector('input[name="type"]:checked').value;
     if(!desc){
         alert('Please enter a description');
-
+        return;
     }
     if(isNaN(amount) || amount <= 0){
         alert('Please enter a valid amount');
