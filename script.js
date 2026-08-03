@@ -49,7 +49,7 @@ function renderStats(){
     transactionCount.textContent = transactions.length;
 }
 function getFilterTransactions(){
-    const cat = filterCategory.arialvalueMax;
+    const cat = filterCategory.value;
     const type = filterType.value;
     return transactions.filter(t => {
         if (cat !== 'all' && t.category !== cat) return false;
@@ -188,7 +188,7 @@ function handleAdd(){
         alert('Please enter a description');
 
     }
-    if(!isNaN(amount) || amount <= 0){
+    if(isNaN(amount) || amount <= 0){
         alert('Please enter a valid amount');
         return;
     }
@@ -236,3 +236,23 @@ function clearAll(){
         renderAll();
     }
 }
+let darkMode = false;
+themeToggle.addEventListener('click', () => {
+    darkMode = !darkMode;
+    document.documentElement.setAttribute('data-theme', darkMode ? 'dark' : 'light');
+    themeIcon.className = darkMode ? 'fas fa-sun' : 'fas fa-moon';
+    renderChart();
+});
+addBtn.addEventListener('click', handleAdd);
+document.addEventListener('keydown', (e) => {
+    if(e.key === 'Enter' && e.target.closest('.add-form')){
+        handleAdd();
+    }
+});
+clearAllBtn.addEventListener('click', clearAll);
+filterCategory.addEventListener('change', renderList);
+filterType.addEventListener('change', renderList);
+loadData();
+renderAll();
+categorySelect.value = 'Food';
+console.log(' Expense Tracker Loaded, Data: ', transactions.length, 'transactions');
