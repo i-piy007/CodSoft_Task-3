@@ -1,22 +1,7 @@
 let transactions = [];
 let editingId = null;
 let chartInstance = null;
-const STORAGE_KEY = 'expense_tracker_data';
-function loadData(){
-    try{
-        const data = localStorage.getItem(STORAGE_KEY);
-        if (data) transactions = JSON.parse(data);
-        else transactions = [];
-    } catch{
-        transactions = [];
-    }
-}
-function saveData(){
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(transactions));
-}
-function generateId(){
-    return Date.now() + '_' + Math.random().toString(36).slice(2, 7);
-}
+const STORAGE_KEY = 'expense_tracker-data';
 const descInput = document.getElementById('descInput');
 const amountInput = document.getElementById('amountInput');
 const categorySelect = document.getElementById('categorySelect');
@@ -29,58 +14,86 @@ const totalIncome = document.getElementById('totalIncome');
 const totalExpense = document.getElementById('totalExpense');
 const transactionCount = document.getElementById('transactionCount');
 const clearAllBtn = document.getElementById('clearAllBtn');
-const themeToggle = document.getElementById('themeToggle');
-const themeIcon = document.getElementById('themeIcon');
-
-function renderAll(){
+const themeToggle = document.getElementById('themetoggle');
+const themeIcon = document.getElementById('themeicon');
+function loadData() {
+    try {
+        const data = localStorage.getItem(STORAGE_KEY);
+        transactions = data ? JSON.parse(data) : [];
+    } catch {
+        transactions = [];
+    }
+}
+function saveData() {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(transactions));
+}
+function generateId() {
+    return Date.now() + '_' + Math.random().toString(36).slice(2, 7);
+}
+function renderAll() {
     renderStats();
     renderList();
     renderChart();
 }
-function renderStats(){
+function renderStats() {
     const total = transactions.reduce((sum, t) => {
         return t.type === 'income' ? sum + t.amount : sum - t.amount;
     }, 0);
-    const income = transactions.filter(t => t.type === 'income').reduce((sum,t) => t.amount, 0);
-    const expense = transactions.filter(t => t.type === 'expense').reduce((sum,t) => sum + t.amount, 0);
-    
+    const income = transactions
+        .filter((t) => t.type === 'income')
+        .reduce((sum, t) => sum + t.amount, 0);
+    const expense = transactions
+        .filter((t) => t.type === 'expense')
+        .reduce((sum, t) => sum + t.amount, 0);
+
     totalBalance.textContent = `$${total.toFixed(2)}`;
     totalIncome.textContent = `$${income.toFixed(2)}`;
     totalExpense.textContent = `$${expense.toFixed(2)}`;
     transactionCount.textContent = transactions.length;
 }
-function getFilteredTransactions(){
+function getFilteredTransactions() {
     const cat = filterCategory.value;
     const type = filterType.value;
-    return transactions.filter(t => {
+
+    return transactions.filter((t) => {
         if (cat !== 'all' && t.category !== cat) return false;
         if (type !== 'all' && t.type !== type) return false;
         return true;
     });
 }
-function renderList(){
+function formatDate(dateStr) {
+    const d = new Date(dateStr);
+    return d.toLocaleDateString('en-US', {
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric'
+    });
+}
+function renderList() {
     const filtered = getFilteredTransactions();
-    if(filtered.length === 0){
-        expensesList.innerHTML = `<div class="no-expenses"> No Tranactions Match your filters.</div>`;
-        return; 
+
+    if (filtered.length === 0) {
+        expensesList.innerHTML = '<div class="no-expenses">No transactions match your filters.</div>';
+        return;
     }
     const sorted = [...filtered].sort((a, b) => new Date(b.date) - new Date(a.date));
-    let html= '';
-    sorted.forEach(t => {
+    let html = '';
+
+    sorted.forEach((t) => {
         const isIncome = t.type === 'income';
         const amountClass = isIncome ? 'income-amount' : '';
         const sign = isIncome ? '+' : '-';
         html += `
-        <div class="expense-item" data-id = "${t.id}">
+        <div class="expense-item" data-id="${t.id}">
             <div class="expense-info">
                 <div class="expense-meta">
-                    <span class="category-badge">${t.category} </span>
+                    <span class="category-badge">${t.category}</span>
                     <span>${formatDate(t.date)}</span>
-                    <span style="text-transform:capitalize;">${t.type}</span>
+                    <span style="text-transform: capitalize;">${t.type}</span>
                 </div>
             </div>
             <div class="expense-amount ${amountClass}">${sign}$${t.amount.toFixed(2)}</div>
-            <div class="expense-actions">
+            <div class="expense-actions expenses-actions">
                 <button class="edit-btn" data-id="${t.id}"><i class="fas fa-pen"></i></button>
                 <button class="delete-btn" data-id="${t.id}"><i class="fas fa-times"></i></button>
             </div>
@@ -88,46 +101,43 @@ function renderList(){
         `;
     });
     expensesList.innerHTML = html;
-    expensesList.querySelectorAll('.delete-btn').forEach(btn => {
+    expensesList.querySelectorAll('.delete-btn').forEach((btn) => {
         btn.addEventListener('click', (e) => {
             e.stopPropagation();
-            if(confirm('Delete this transactions ?')){
-                transactions = transactions.filter(t => t.id !== id);
+            const id = btn.dataset.id;
+            if (confirm('Delete this transaction?')) {
+                transactions = transactions.filter((t) => t.id !== id);
                 saveData();
                 if (editingId === id) editingId = null;
                 renderAll();
             }
-        }); 
+        });
     });
-    expensesList.querySelectorAll('.edit-btn').forEach(btn => {
+    expensesList.querySelectorAll('.edit-btn').forEach((btn) => {
         btn.addEventListener('click', (e) => {
             e.stopPropagation();
             const id = btn.dataset.id;
-            const t = transactions.find(tr => tr.id === id);
-            if(t){
+            const t = transactions.find((tr) => tr.id === id);
+            if (t) {
                 editingId = id;
                 descInput.value = t.description;
                 amountInput.value = t.amount;
                 categorySelect.value = t.category;
-                document.querySelectorAll('input[name="type"]').forEach(r => {
+                document.querySelectorAll('input[name="type"]').forEach((r) => {
                     r.checked = r.value === t.type;
                 });
                 addBtn.innerHTML = '<i class="fas fa-save"></i> Update';
-                addBtn.style.background = `var(--warning)`;
-                document.querySelector('.add-form').scrollIntoView({behavior: 'smooth'});
+                addBtn.style.background = 'var(--warning)';
+                document.querySelector('.add-form').scrollIntoView({ behavior: 'smooth' });
             }
         });
     });
 }
-function formatDate(dateStr){
-    const d = new Date(dateStr);
-    return d.toLocaleDateString('en-US',{month: 'short', day: 'numeric', year: 'numeric'});
-}
-function renderChart(){
+function renderChart() {
     const ctx = document.getElementById('categoryChart').getContext('2d');
-    const expenses = transactions.filter(t => t.type === 'expense');
+    const expenses = transactions.filter((t) => t.type === 'expense');
     const categoryMap = {};
-    expenses.forEach(t => {
+    expenses.forEach((t) => {
         categoryMap[t.category] = (categoryMap[t.category] || 0) + t.amount;
     });
     const labels = Object.keys(categoryMap);
@@ -135,19 +145,19 @@ function renderChart(){
     const colors = [
         '#6366f1', '#10b981', '#ef4444', '#8b5cf6', '#f59e0b', '#ec4899', '#14b8a6', '#f97316', '#6b7280'
     ];
-    if(chartInstance) chartInstance.destroy();
-    if(labels.length === 0){
+    if (chartInstance) chartInstance.destroy();
+    if (labels.length === 0) {
         chartInstance = new Chart(ctx, {
             type: 'doughnut',
             data: {
                 labels: ['No Data'],
-                datasets: [{data: [1], backgroundColor: ['#e5e7eb']}]
+                datasets: [{ data: [1], backgroundColor: ['#e5e7eb'] }]
             },
             options: {
-                Responsive: true,
+                responsive: true,
                 maintainAspectRatio: false,
-                plugins: {legend: {display: false}},
-                cutout: '70%',
+                plugins: { legend: { display: false } },
+                cutout: '70%'
             }
         });
         return;
@@ -156,57 +166,56 @@ function renderChart(){
         type: 'doughnut',
         data: {
             labels: labels,
-            datasets : [{
+            datasets: [{
                 data: data,
                 backgroundColor: colors.slice(0, labels.length),
-                borderWidth: 0,
+                borderWidth: 0
             }]
         },
         options: {
             responsive: true,
             maintainAspectRatio: false,
             plugins: {
-                lagend: {
+                legend: {
                     position: 'bottom',
-                    labels:{
+                    labels: {
                         boxWidth: 12,
-                        font: {size: 11},
+                        font: { size: 11 },
                         padding: 12,
                         color: getComputedStyle(document.documentElement).getPropertyValue('--text').trim() || '#1a1a2e'
                     }
                 }
             },
-            cutout: '65%', 
+            cutout: '65%'
         }
     });
 }
-function handleAdd(){
+function handleAdd() {
     const desc = descInput.value.trim();
     const amount = parseFloat(amountInput.value);
     const category = categorySelect.value;
-    const type = document.querySelector('input[name="type"]:checked').value;
-    if(!desc){
+    const selectedTypeInput = document.querySelector('input[name="type"]:checked');
+    const type = selectedTypeInput ? selectedTypeInput.value : 'expense';
+
+    if (!desc) {
         alert('Please enter a description');
         return;
     }
-    if(isNaN(amount) || amount <= 0){
+    if (isNaN(amount) || amount <= 0) {
         alert('Please enter a valid amount');
         return;
     }
-    if(editingId){
-        const idx = transactions.findIndex(t => t.id === editingId);
-        if(idx !== -1){
+    if (editingId) {
+        const idx = transactions.findIndex((t) => t.id === editingId);
+        if (idx !== -1) {
             transactions[idx].description = desc;
             transactions[idx].amount = amount;
             transactions[idx].category = category;
             transactions[idx].type = type;
             transactions[idx].updated = new Date().toISOString();
         }
-        editingId = null;
-        addBtn.innerHTML = '<i class="fas fa-plus"></i> Add';
-        addBtn.style.background = '';
-    } else{
-        const newT= {
+    } else {
+        transactions.push({
             id: generateId(),
             description: desc,
             amount: amount,
@@ -214,13 +223,13 @@ function handleAdd(){
             type: type,
             date: new Date().toISOString(),
             created: new Date().toISOString()
-        };
-        transactions.push(newT);
+        });
     }
     saveData();
     clearForm();
+    renderAll();
 }
-function clearForm(){
+function clearForm() {
     descInput.value = '';
     amountInput.value = '';
     categorySelect.value = 'Food';
@@ -229,15 +238,16 @@ function clearForm(){
     addBtn.innerHTML = '<i class="fas fa-plus"></i> Add';
     addBtn.style.background = '';
 }
-function clearAll(){
-    if(transactions.length === 0) return;
-    if(confirm('Delete all transactions? This cannot be undone.')){
+function clearAll() {
+    if (transactions.length === 0) return;
+    if (confirm('Delete all transactions? This cannot be undone.')) {
         transactions = [];
         saveData();
         renderAll();
     }
 }
 let darkMode = false;
+
 themeToggle.addEventListener('click', () => {
     darkMode = !darkMode;
     document.documentElement.setAttribute('data-theme', darkMode ? 'dark' : 'light');
@@ -245,8 +255,10 @@ themeToggle.addEventListener('click', () => {
     renderChart();
 });
 addBtn.addEventListener('click', handleAdd);
+
 document.addEventListener('keydown', (e) => {
-    if(e.key === 'Enter' && e.target.closest('.add-form')){
+    if (e.key === 'Enter' && e.target.closest('.add-form')) {
+        e.preventDefault();
         handleAdd();
     }
 });
@@ -256,4 +268,4 @@ filterType.addEventListener('change', renderList);
 loadData();
 renderAll();
 categorySelect.value = 'Food';
-console.log(' Expense Tracker Loaded, Data: ', transactions.length, 'transactions');
+console.log('Expense Tracker Loaded, Data:', transactions.length, 'transactions');
